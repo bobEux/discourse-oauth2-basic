@@ -130,8 +130,9 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       if result.user && user_details[:user_id]
         ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
       else
-        result.user = User.create(name: name, email: email, username: name)
-        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: user.id)
+        log("creating account for #{user.id}")
+        result.user = User.create(name: result.name, email: result.email, username: result.username)
+        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", user_id: result.user.id)
       end
     end
 
