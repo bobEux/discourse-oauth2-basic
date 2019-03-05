@@ -109,6 +109,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def after_authenticate(auth)
+    log("after_authenticate custom starts")
     log("after_authenticate response: \n\ncreds: #{auth['credentials'].to_hash}\ninfo: #{auth['info'].to_hash}\nextra: #{auth['extra'].to_hash}")
 
     result = Auth::Result.new
@@ -128,6 +129,9 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       result.user = User.find_by_email(result.email)
       if result.user && user_details[:user_id]
         ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
+      else
+        result.user = User.create(name: name, email: email, username: name)
+        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: user.id)
       end
     end
 
