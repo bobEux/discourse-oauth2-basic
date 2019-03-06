@@ -127,13 +127,13 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       result.user = User.where(id: current_info[:user_id]).first
     elsif SiteSetting.oauth2_email_verified?
       result.user = User.find_by_email(result.email)
-      if result.user && user_details[:user_id]
-        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
-      else
+      # if result.user && user_details[:user_id]
+      #   ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
+      # else
         log("creating account for #{user.id}")
         result.user = User.create(name: result.name, email: result.email, username: result.username)
         ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", user_id: result.user.id)
-      end
+      # end
     end
 
     download_avatar(result.user, avatar_url)
