@@ -124,6 +124,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
 
     current_info = ::PluginStore.get("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}")
     if current_info
+      log("current_info rule")
       result.user = User.where(id: current_info[:user_id]).first
     elsif SiteSetting.oauth2_email_verified?
       result.user = User.find_by_email(result.email)
