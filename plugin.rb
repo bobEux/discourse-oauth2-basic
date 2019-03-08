@@ -125,12 +125,12 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     oauth2_uid = user_details[:user_id]
     oauth2_provider = "oauth2_basic"
 
-    if User.find_by_username(username: result.username).nil? && User.find_by_email(result.email).nil?
+    if User.find_by_username(result.username).nil? && User.find_by_email(result.email).nil?
       user = User.create(name: result.name, email: result.email, username: result.username)
     end
 
     oauth2_user_info = Oauth2UserInfo.where(uid: oauth2_uid, provider: oauth2_provider).first
-    user = User.where(username: result.username)
+    user = User.where(result.username)
 
     if !oauth2_user_info && user
       oauth2_user_info = Oauth2UserInfo.create(uid: oauth2_uid,
