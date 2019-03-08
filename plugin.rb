@@ -5,6 +5,7 @@
 # url: https://github.com/discourse/discourse-oauth2-basic
 
 require_dependency 'auth/oauth2_authenticator.rb'
+require_dependency 'enum'
 
 enabled_site_setting :oauth2_enabled
 
@@ -109,7 +110,6 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
   end
 
   def after_authenticate(auth)
-    log("after_authenticate custom starts")
     log("after_authenticate response: \n\ncreds: #{auth['credentials'].to_hash}\ninfo: #{auth['info'].to_hash}\nextra: #{auth['extra'].to_hash}")
 
     result = Auth::Result.new
@@ -122,24 +122,35 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     result.email_valid = result.email.present? && SiteSetting.oauth2_email_verified?
     avatar_url = user_details[:avatar]
 
-    current_info = ::PluginStore.get("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}")
-    if current_info
-      log("current_info rule")
-      result.user = User.where(id: current_info[:user_id]).first
-    elsif SiteSetting.oauth2_email_verified?
-      result.user = User.find_by_email(result.email)
-      # if result.user && user_details[:user_id]
-      #   ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
-      # else
-        log("creating account for #{user.id}")
-        result.user = User.create(name: result.name, email: result.email, username: result.username)
-        ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{auth[:extra_data][:oauth2_basic_user_id]}", user_id: result.user.id)
-      # end
+    oauth2_uid = user_details[:user_id]
+    oauth2_provider = "oauth2_basic"
+
+    if User.find_by_email(result.email).nil?
+      user = User.create(name: result.name, email: result.email, username: result.username)
     end
 
-    download_avatar(result.user, avatar_url)
+    oauth2_user_info = Oauth2UserInfo.where(uid: oauth2_uid, provider: oauth2_provider).first
+    user = User.find_by_email(result.email)
 
-    result.extra_data = { oauth2_basic_user_id: user_details[:user_id], avatar_url: avatar_url }
+    if !oauth2_user_info && user
+      oauth2_user_info = Oauth2UserInfo.create(uid: oauth2_uid,
+                                               provider: oauth2_provider,
+                                               name: result.name,
+                                               email: result.email,
+                                               user: user)
+    end
+
+    if user.nil?
+      result = Auth::Result.new
+      result.failed = true
+      result.failed_reason = "Username already exists with different email."
+    else
+      result.user = oauth2_user_info.try(:user)
+      #::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
+      download_avatar(result.user, avatar_url)
+      result.extra_data = { oauth2_basic_user_id: user_details[:user_id], avatar_url: avatar_url }
+    end
+
     result
   end
 
