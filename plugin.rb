@@ -5,7 +5,6 @@
 # url: https://github.com/discourse/discourse-oauth2-basic
 
 require_dependency 'auth/oauth2_authenticator.rb'
-require_dependency 'enum'
 
 enabled_site_setting :oauth2_enabled
 
@@ -28,9 +27,9 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
                       name: 'oauth2_basic',
                       setup: lambda { |env|
                         opts = env['omniauth.strategy'].options
-                        opts[:client_id] = SiteSetting.oauth2_client_id
+ 			                  opts[:client_id] = SiteSetting.oauth2_client_id
                         opts[:client_secret] = SiteSetting.oauth2_client_secret
-                        opts[:provider_ignores_state] = false
+                        opts[:provider_ignores_state] = true
                         opts[:client_options] = {
                           authorize_url: SiteSetting.oauth2_authorize_url,
                           token_url: SiteSetting.oauth2_token_url,
@@ -130,7 +129,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     end
 
     oauth2_user_info = Oauth2UserInfo.where(uid: oauth2_uid, provider: oauth2_provider).first
-    user = User.where(result.username)
+    user = User.find_by_username(result.username)
 
     if !oauth2_user_info && user
       oauth2_user_info = Oauth2UserInfo.create(uid: oauth2_uid,
@@ -146,9 +145,9 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
       result.failed_reason = "Username already exists with different email."
     else
       result.user = oauth2_user_info.try(:user)
-      #::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
+      ::PluginStore.set("oauth2_basic", "oauth2_basic_user_#{user_details[:user_id]}", user_id: result.user.id)
       download_avatar(result.user, avatar_url)
-      result.extra_data = { oauth2_basic_user_id: user_details[:user_id], avatar_url: avatar_url }
+      result.extra_data = { uid: oauth2_uid, provider: oauth2_provider, oauth2_basic_user_id: user_details[:user_id], avatar_url: avatar_url }
     end
 
     result
