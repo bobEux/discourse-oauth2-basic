@@ -29,7 +29,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
                         opts = env['omniauth.strategy'].options
  			                  opts[:client_id] = SiteSetting.oauth2_client_id
                         opts[:client_secret] = SiteSetting.oauth2_client_secret
-                        opts[:provider_ignores_state] = true
+                        opts[:provider_ignores_state] = false
                         opts[:client_options] = {
                           authorize_url: SiteSetting.oauth2_authorize_url,
                           token_url: SiteSetting.oauth2_token_url,
@@ -125,7 +125,7 @@ class OAuth2BasicAuthenticator < ::Auth::OAuth2Authenticator
     oauth2_provider = "oauth2_basic"
 
     if User.find_by_username(result.username).nil? && User.find_by_email(result.email).nil?
-      user = User.create(name: result.name, email: result.email, username: result.username)
+      user = User.create(name: result.name, email: result.email, username: result.username, active: true)
     end
 
     oauth2_user_info = Oauth2UserInfo.where(uid: oauth2_uid, provider: oauth2_provider).first
